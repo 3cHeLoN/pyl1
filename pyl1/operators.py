@@ -118,3 +118,23 @@ class OpTVTranspose(scipy.sparse.linalg.LinearOperator):
 
     def rmatvec(self, input_vec):
         return self.parent._matvec(input_vec)
+
+
+class OpTranspose(scipy.sparse.linalg.LinearOperator):
+    """Object that provides the transpose operator ".T" of an operator object."""
+
+    def __init__(self, parent):
+        self.parent = parent
+        self.dtype = np.float32
+        self.shape = (parent.shape[1], parent.shape[0])
+
+        super().__init__(self.dtype, self.shape)
+
+    def _tranpose(self):
+        return self.parent
+
+    def _matvec(self, input_vec):
+        return self.parent.rmatvec(input_vec)
+
+    def rmatvec(self, input_vec):
+        return self.parent._matvec(input_vec)

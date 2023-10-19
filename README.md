@@ -1,7 +1,7 @@
-#Introduction 
+# Introduction 
 Operators and linear solvers for sparse regression.
 
-#Getting Started
+# Getting Started
 1.	Installation process
     Install using standard distutils:
     ` $ pip install --user -e .`

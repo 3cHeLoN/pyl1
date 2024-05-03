@@ -2,8 +2,8 @@
 
 import numpy as np
 import astra
-from src.pyl1 import ChambollePock
-from src.pyl1 import OpTV3D
+from pyl1.solvers import ChambollePock
+from pyl1.solvers import OpTV3D
 from phantom_3d import phantom3d
 
 

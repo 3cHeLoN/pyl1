@@ -8,8 +8,14 @@ from numpy.typing import NDArray
 class OpTV3D(scipy.sparse.linalg.LinearOperator):
     """Object that implements the total variation operator."""
 
-    def __init__(self, row_count, col_count, slice_count):
-        """Initialize TV operator."""
+    def __init__(self, row_count: int, col_count: int, slice_count: int) -> None:
+        """Initialize TV operator.
+
+        Args:
+            row_count: The number of rows in the volume.
+            col_count: The number of columns in the volume.
+            slice_count: The number of slices in the volume.
+        """
         self.dtype = np.float32
 
         self.row_count = row_count
@@ -24,8 +30,15 @@ class OpTV3D(scipy.sparse.linalg.LinearOperator):
         self.input_size = (slice_count, row_count, col_count)
         self.transpose_optv3d = OpTVTranspose(self)
 
-    def rmatvec(self, x):
-        """Backward product."""
+    def rmatvec(self, x: NDArray) -> NDArray:
+        """Adjoint matrix-vector multiplication.
+
+        Args:
+            x: The input vector.
+
+        Returns:
+            The adjoint matrix-vector product.
+        """
         grad_x = x[: self.shape[1]].reshape(self.input_size).copy()
         grad_y = x[self.shape[1] : 2 * self.shape[1]].reshape(self.input_size).copy()
         grad_z = x[2 * self.shape[1] :].reshape(self.input_size).copy()
@@ -39,10 +52,11 @@ class OpTV3D(scipy.sparse.linalg.LinearOperator):
 
         return (vol_x + vol_y + vol_z).ravel()
 
-    def _transpose(self):
+    def _transpose(self) -> scipy.sparse.linalg.LinearOperator:
+        """Transpose operator."""
         return self.transpose_optv3d
 
-    def _matvec(self, x):
+    def _matvec(self, x: NDArray) -> NDArray:
         """Forward product."""
         volume = x.reshape(self.input_size)
 
@@ -58,8 +72,13 @@ class OpTV3D(scipy.sparse.linalg.LinearOperator):
 class OpTV2D(scipy.sparse.linalg.LinearOperator):
     """Object that implements the total variation operator."""
 
-    def __init__(self, row_count, col_count):
-        """Initialize TV operator."""
+    def __init__(self, row_count: int, col_count: int) -> None:
+        """Initialize TV operator.
+
+        Args:
+            row_count: The number of rows in the image.
+            col_count: The number of columns in the image.
+        """
         self.dtype = np.float32
 
         self.row_count = row_count
@@ -73,10 +92,30 @@ class OpTV2D(scipy.sparse.linalg.LinearOperator):
         self.input_size = (row_count, col_count)
         self.transpose_optv2d = OpTVTranspose(self)
 
-    def _transpose(self):
+    def rmatvec(self, x: NDArray) -> NDArray:
+        """Adjoint matrix-vector multiplication.
+
+        Args:
+            x: The input vector.
+
+        Returns:
+            The adjoint matrix-vector product.
+        """
+        grad_x = x[: self.shape[1]].reshape(self.input_size)
+        grad_y = x[self.shape[1] :].reshape(self.input_size)
+
+        vol_x = -grad_x
+        vol_x[:, 1:] += grad_x[:, :-1]
+        vol_y = -grad_y
+        vol_y[1:, :] += grad_y[:-1, :]
+
+        return (vol_x + vol_y).ravel()
+
+    def _transpose(self) -> scipy.sparse.linalg.LinearOperator:
+        """Tranpose the operator."""
         return self.transpose_optv2d
 
-    def _matvec(self, x):
+    def _matvec(self, x: NDArray) -> NDArray:
         """Forward product."""
         volume = x.reshape(self.input_size)
 
@@ -88,18 +127,6 @@ class OpTV2D(scipy.sparse.linalg.LinearOperator):
 
         # combine the results
         return np.concatenate((grad_x.ravel(), grad_y.ravel()))
-
-    def rmatvec(self, x):
-        """Backward product."""
-        grad_x = x[: self.shape[1]].reshape(self.input_size)
-        grad_y = x[self.shape[1] :].reshape(self.input_size)
-
-        vol_x = -grad_x
-        vol_x[:, 1:] += grad_x[:, :-1]
-        vol_y = -grad_y
-        vol_y[1:, :] += grad_y[:-1, :]
-
-        return (vol_x + vol_y).ravel()
 
 
 class OpTVTranspose(scipy.sparse.linalg.LinearOperator):
@@ -154,8 +181,10 @@ class OpTranspose(scipy.sparse.linalg.LinearOperator):
         """
         return self.parent.matvec(x)
 
-    def _tranpose(self):
+    def _tranpose(self) -> scipy.sparse.linalg.LinearOperator:
+        """Transpose the operator."""
         return self.parent
 
-    def _matvec(self, x):
+    def _matvec(self, x: NDArray) -> NDArray:
+        """Forward product of the operator."""
         return self.parent.rmatvec(x)

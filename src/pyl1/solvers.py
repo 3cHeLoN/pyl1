@@ -1,15 +1,31 @@
 """Linear sparse solvers."""
 
+from typing import Callable
+
 import scipy
 import numpy as np
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 from pyl1.util import RealtimeImager
 
 
-def power_method(a_matrix, max_iter=10):
-    """Compute the largest singular value of A."""
+def power_method(
+    a_matrix: NDArray | scipy.sparse.linalg.LinearOperator, max_iter: int = 10
+) -> float:
+    """Power method.
+
+    The power method is an algorithm for computing  the largest singular value of a
+    linear operator.
+
+    Args:
+        a_matrix: The linear operator.
+        max_iter: The maximum number of iterations.
+
+    Returns:
+        The largest singular value of the linear operator.
+    """
     x_vec = np.random.random((a_matrix.shape[1],))
     y_vec = a_matrix * x_vec
+    largest_singular_value = 0.0
 
     for iter_count in range(max_iter):
         x_vec = a_matrix.rmatvec(y_vec)
@@ -71,8 +87,12 @@ class ChambollePock:
         self.lipschitz_factor = lipschitz_factor
 
     # pylint: disable=too-many-statements
-    def run(self):
-        """Run the algorithm."""
+    def run(self) -> NDArray:
+        """Run the algorithm.
+
+        Returns:
+            The solution vector.
+        """
         print("Determine A-scaling")
         largest_eigenvalue_a = self.a_scale or power_method(self.a_matrix, 15)
 
@@ -183,7 +203,16 @@ class ChambollePock:
         x_vec = u_bar_vec
         return x_vec
 
-    def get_slice(self, u_vec):
+    def get_slice(self, u_vec: NDArray) -> NDArray:
+        """Get a slice of the 3d volume.
+
+        Args:
+            u_vec: The 3d volume as a vector.
+
+        Returns:
+            The image of the corresponding slice.
+        """
+
         """Get slice of volume."""
         middle_slice_index = int(self.a_matrix.vshape[0] / 2)
         if len(self.a_matrix.vshape) == 3:
@@ -193,7 +222,11 @@ class ChambollePock:
         return im_slice
 
     @staticmethod
-    def tvmin_power_method(w_matrix, d_matrix, max_iter=10):
+    def tvmin_power_method(
+        w_matrix: NDArray | scipy.sparse.linalg.LinearOperator,
+        d_matrix: NDArray | scipy.sparse.linalg.LinearOperator,
+        max_iter: int = 10,
+    ):
         """Compute the largest singular value of [W, D]."""
         x_vec = np.random.random((w_matrix.shape[1],))
         y_vec = w_matrix.matvec(x_vec)
@@ -222,16 +255,25 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
 
     def __init__(
         self,
-        operator,
-        rhs,
-        input_data,  # pylint:disable=too-many-arguments
-        regularizer=0.5,
-        max_iter=10,
-        operator_transposed=None,
-        seed=None,
+        operator: NDArray | Callable,
+        rhs: NDArray,
+        input_data: NDArray,
+        regularizer: float = 0.5,
+        max_iter: int = 10,
+        operator_transposed: Callable = None,
+        seed: float = None,
     ):  # pylint:disable=too-many-arguments
-        """Create FISTA instance."""
-        # check whether "operator" is a matrix or function handle
+        """Create a FISTA instance.
+
+        Args:
+            operator: The linear operator.
+            rhs: The right hand side.
+            input_data: The input data.
+            regularizer: The regularization factor.
+            max_iter: The maximum number of iterations.
+            operator_transposed: The function handle to the transposed operator.
+            seed: The input seed.
+        """
         if not callable(operator):
             self.operator_fun = operator.dot
             self.operator_transposed_fun = operator.T.dot
@@ -251,37 +293,20 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
         self.normalization = self._power_iteration() ** 2
         self.regularizer = regularizer
 
-    def initialize(self, initial_vector):
-        """Initialize method."""
+    def initialize(self, initial_vector: NDArray) -> None:
+        """Initialize method.
+
+        Args:
+            initial_vector: The initial vector.
+        """
         self.data = initial_vector.copy()
 
-    @staticmethod
-    def _soft_threshold(data, threshold):
-        """Threshold data."""
-        return np.sign(data) * np.maximum(np.abs(data) - threshold, 0)
+    def run(self) -> tuple[NDArray, NDArray]:
+        """Run fista method.
 
-    def _normal_matrix(self, input_vector):
-        """Combine A_transpose * A."""
-        return self.operator_transposed_fun(self.operator_fun(input_vector))
-
-    def _power_iteration(self, max_iter=10):
-        """Compute largest singular value."""
-        if self.seed is not None:
-            np.random.seed(self.seed)
-        eigen_vector = np.random.rand(self.operator_size[1])
-
-        for _ in range(max_iter):
-            eigen_vector_1 = self._normal_matrix(eigen_vector)
-            # calculate norm
-            eigen_vector_1_norm = np.linalg.norm(eigen_vector_1)
-            # re-normalize vector
-            eigen_vector = eigen_vector_1 / eigen_vector_1_norm
-
-        largest_eigen_value = np.linalg.norm(self.operator_fun(eigen_vector))
-        return largest_eigen_value
-
-    def run(self):
-        """Run fista method."""
+        Returns:
+            The solution vector and the residual vector.
+        """
         residual = np.zeros((self.max_iter,))
         threshold = 1
         update = self.data.copy()
@@ -305,6 +330,31 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
                 self.operator_fun(self.data) - self.rhs
             ) ** 2 + self.regularizer * np.linalg.norm(self.data, ord=1)
         return self.data, residual
+
+    @staticmethod
+    def _soft_threshold(data: NDArray, threshold: float) -> NDArray:
+        """Threshold data."""
+        return np.sign(data) * np.maximum(np.abs(data) - threshold, 0)
+
+    def _normal_matrix(self, input_vector: NDArray) -> NDArray:
+        """Combine A_transpose * A."""
+        return self.operator_transposed_fun(self.operator_fun(input_vector))
+
+    def _power_iteration(self, max_iter: int = 10) -> float:
+        """Compute largest singular value."""
+        if self.seed is not None:
+            np.random.seed(self.seed)
+        eigen_vector = np.random.rand(self.operator_size[1])
+
+        for _ in range(max_iter):
+            eigen_vector_1 = self._normal_matrix(eigen_vector)
+            # calculate norm
+            eigen_vector_1_norm = np.linalg.norm(eigen_vector_1)
+            # re-normalize vector
+            eigen_vector = eigen_vector_1 / eigen_vector_1_norm
+
+        largest_eigen_value = np.linalg.norm(self.operator_fun(eigen_vector))
+        return largest_eigen_value
 
 
 # class DCA:

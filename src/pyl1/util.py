@@ -1,15 +1,13 @@
-"""
-Utilities.
-"""
+"""Utilities."""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-class RealtimeImager(object):
-
+class RealtimeImager:
     """Image picture animation in realtime."""
 
-    def __init__(self, image_0, vmin=None, vmax=None, cmap='gray'):
+    def __init__(self, image_0, vmin=None, vmax=None, cmap="gray"):
         """Initialize object."""
         self.figure = plt.figure()
         self.axis = self.figure.add_subplot(111)
@@ -35,7 +33,7 @@ class RealtimeImager(object):
         else:
             vmax = self.vmax
 
-        #self.axes_image.set_array(image / image.max())
+        # self.axes_image.set_array(image / image.max())
         self.axes_image.set_clim(vmin, vmax)
         self.axes_image.set_data(image)
         self.figure.canvas.draw()

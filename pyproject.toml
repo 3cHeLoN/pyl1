@@ -1,0 +1,17 @@
+[project]
+name = "pyl1"
+description = "Tools for sparse regression."
+version = "0.9.1"
+authors = [
+    {name = "Folkert Bleichrodt", email = "3368283-3chelon@users.noreply.gitlab.com"},
+]
+
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "scipy",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

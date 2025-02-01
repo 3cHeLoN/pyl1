@@ -2,9 +2,10 @@
 
 from typing import Callable
 
-import scipy
 import numpy as np
+import scipy
 from numpy.typing import NDArray
+
 from pyl1.util import RealtimeImager
 
 
@@ -49,9 +50,9 @@ class ChambollePock:
         tv_weight: float = 10,
         nonnegative: bool = False,
         show: bool = False,
-        a_scale: float = None,
-        tv_scale: float = None,
-        lipschitz_factor: float = None,
+        a_scale: float | None = None,
+        tv_scale: float | None = None,
+        lipschitz_factor: float = 1,
     ) -> None:
         """Initialize the Chambolle-Pock algorithm.
 
@@ -107,7 +108,7 @@ class ChambollePock:
         tv_weight = largest_eigenvalue_tv / (largest_eigenvalue_a**2) * self.tv_weight
 
         print("Determine Lipschitz-constant")
-        largest_eigenvalue = self.lipschitz_factor or 1
+        largest_eigenvalue = self.lipschitz_factor
 
         x_0 = self.x_0 or np.zeros((a_matrix.shape[1],))
 
@@ -194,14 +195,12 @@ class ChambollePock:
             ):
                 increasing_objective_count += 1
                 if increasing_objective_count >= 5:
-                    x_vec = u_bar_vec
                     return u_bar_vec
 
         if self.show:
             print(f"Converged after {iter_count} iterations")
 
-        x_vec = u_bar_vec
-        return x_vec
+        return u_bar_vec
 
     def get_slice(self, u_vec: NDArray) -> NDArray:
         """Get a slice of the 3d volume.
@@ -212,8 +211,6 @@ class ChambollePock:
         Returns:
             The image of the corresponding slice.
         """
-
-        """Get slice of volume."""
         middle_slice_index = int(self.a_matrix.vshape[0] / 2)
         if len(self.a_matrix.vshape) == 3:
             im_slice = u_vec.reshape(self.a_matrix.vshape)[middle_slice_index, :, :]
@@ -226,11 +223,13 @@ class ChambollePock:
         w_matrix: NDArray | scipy.sparse.linalg.LinearOperator,
         d_matrix: NDArray | scipy.sparse.linalg.LinearOperator,
         max_iter: int = 10,
-    ):
+    ) -> float:
         """Compute the largest singular value of [W, D]."""
         x_vec = np.random.random((w_matrix.shape[1],))
         y_vec = w_matrix.matvec(x_vec)
         z_vec = d_matrix.matvec(x_vec)
+
+        largest_eigenvalue = np.sqrt(np.dot(y_vec, y_vec) + np.dot(z_vec, z_vec))
 
         for iter_count in range(max_iter):
             # power iteration
@@ -250,7 +249,6 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
     Based on the paper:
     [1] Amir Beck, Marc Teboulle, "A Fast Iterative Shrinkage-Thresholding Algorithm
         for Linear Inverse Problems", SIAM J. Imaging sciences, 2(1), pp. 183-202, 2009.
-        https://people.rennes.inria.fr/Cedric.Herzet/Cedric.Herzet/Sparse_Seminar/Entrees/2012/11/12_A_Fast_Iterative_Shrinkage-Thresholding_Algorithmfor_Linear_Inverse_Problems_(A._Beck,_M._Teboulle)_files/Breck_2009.pdf
     """
 
     def __init__(
@@ -260,9 +258,9 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
         input_data: NDArray,
         regularizer: float = 0.5,
         max_iter: int = 10,
-        operator_transposed: Callable = None,
-        seed: float = None,
-    ):  # pylint:disable=too-many-arguments
+        operator_transposed: Callable | None = None,
+        seed: float | None = None,
+    ) -> None:  # pylint:disable=too-many-arguments
         """Create a FISTA instance.
 
         Args:
@@ -286,8 +284,8 @@ class Fista:  # pylint: disable=too-many-instance-attributes,too-few-public-meth
             self.operator_transposed_fun = operator_transposed
 
         self.seed = seed
-        self.rhs = rhs.copy()
-        self.data = input_data.copy()
+        self.rhs = rhs
+        self.data = input_data
         self.max_iter = max_iter
         self.operator_size = (rhs.size, input_data.size)
         self.normalization = self._power_iteration() ** 2

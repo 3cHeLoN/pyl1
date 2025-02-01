@@ -1,7 +1,7 @@
 """Utilities."""
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from numpy.typing import NDArray
 
 
@@ -14,7 +14,7 @@ class RealtimeImager:
         vmin: float = None,
         vmax: float = None,
         cmap: str = "gray",
-    ):
+    ) -> None:
         """Real time imager.
 
         This imager can show images with minimal delay, making it possible to display

@@ -1,13 +1,15 @@
 """Chambolle Pock 3D example."""
 
-import numpy as np
 import astra
-from pyl1.solvers import ChambollePock
-from pyl1.solvers import OpTV3D
+import numpy as np
 from phantom_3d import phantom3d
+
+from pyl1.operators import OpTV3D
+from pyl1.solvers import ChambollePock
 
 
 def main() -> None:
+    """Apply Chambolle-Pock."""
     volume = phantom3d(n=256)
 
     proj_geom = astra.create_proj_geom(
@@ -16,16 +18,17 @@ def main() -> None:
     vol_geom = astra.create_vol_geom(256, 256, 256)
     proj_id = astra.create_projector("cuda3d", proj_geom, vol_geom)
 
-    W = astra.optomo.OpTomo(proj_id)
-    TV = OpTV3D(256, 256, 256)
+    w_operator = astra.optomo.OpTomo(proj_id)
+    tv_operator = OpTV3D(256, 256, 256)
 
-    rhs = W * volume.ravel()
+    rhs = w_operator * volume.ravel()
 
-    tv = TV * volume.ravel()
-
-    cp_alg = ChambollePock(W, TV, rhs, show=True, max_iter=100, nonnegative=True)
+    cp_alg = ChambollePock(
+        w_operator, tv_operator, rhs, show=True, max_iter=100, nonnegative=True
+    )
 
     x = cp_alg.run()
+    print("The solution is:", x)
 
 
 if __name__ == "__main__":

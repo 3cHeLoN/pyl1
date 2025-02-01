@@ -1,11 +1,12 @@
 """Create a 3D phantom."""
 
 from __future__ import division
+
 import numpy as np
 
 
-def phantom3d(phantom="modified-shepp-logan", n=64):
-    """Three-dimensional Shepp-Logan phantom
+def phantom3d(phantom: str = "modified-shepp-logan", n: int = 64) -> np.ndarray:
+    """Three-dimensional Shepp-Logan phantom.
 
     Can be used to test 3-D reconstruction algorithms.
     For any given voxel in the output image, the voxel's value is equal to the
@@ -94,15 +95,17 @@ def phantom3d(phantom="modified-shepp-logan", n=64):
     return p.reshape((n, n, n))
 
 
-def shepp_logan():
+def shepp_logan() -> np.ndarray:
+    """Get the 2D shepp login image."""
     arr = modified_shepp_logan()
     arr[:, 0] = np.array([1, -0.98, -0.02, -0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
 
     return arr
 
 
-def modified_shepp_logan():
-    """
+def modified_shepp_logan() -> np.ndarray:
+    """Modified shepp logan image.
+
     This head phantom is the same as the Shepp-Logan except
     the intensities are changed to yield higher contrast in
     the image.  Taken from Toft, 199-200.
@@ -124,8 +127,9 @@ def modified_shepp_logan():
     return np.asarray(np.matrix(mat))
 
 
-def yu_ye_wang():
-    """
+def yu_ye_wang() -> np.ndarray:
+    """Variable radius spiral conebeam-ct.
+
     Yu H, Ye Y, Wang G, Katsevich-Type Algorithms for
     Variable Radius Spiral Cone-Beam CT
 
